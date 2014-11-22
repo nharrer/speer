@@ -1,7 +1,7 @@
 speer
 =====
 
-**S**amsung **P**rinter **EE**prom **R**esetter for Raspberry Pi
+*S*amsung *P*rinter *EE*prom *R*esetter for Raspberry Pi
 
 
 Speer is a python script that can backup, restore and reset the content of the EEPROM of toner cartridges for the Samsung CLP-510 series printers.
