@@ -91,9 +91,9 @@ def print_wiring():
     print('|                         | [D]  [G]  [C] |             /')
     print('+------------------------------------------------------+')
     print('')
-    print('       D = Data    <connect-to>  raspberry pin 3')
-    print('       G = Ground  <connect-to>  raspberry pin 6')
-    print('       C = Clock   <connect-to>  raspberry pin 5')
+    print('       D = Data    <connect-to>  Raspberry Pi pin 3')
+    print('       G = Ground  <connect-to>  Raspberry Pi pin 6')
+    print('       C = Clock   <connect-to>  Raspberry Pi pin 5')
     print()
 
 
