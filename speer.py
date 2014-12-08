@@ -39,14 +39,88 @@ def write_eeprom(buf):
     bus = smbus.SMBus(I2C_BUS)
 
     addr = 0
-    print('Writing {0} bytes:'.format(len(buf)))
+    print('Writing {0} bytes:'.format(len(buf)), file=sys.stderr)
     for b in buf:
-        sys.stdout.write('.')
+        sys.stderr.write('.')
         bus.write_byte_data(I2C_ADDR, addr, b)
         addr = addr + 1
         # wait 5ms or else we would get an error message
         time.sleep(0.001 * 5)
-    print('ok')
+    print('', file=sys.stderr)
+
+def read_eeprom_safe():
+    """
+    Reads the content of the EEPROM multiple times until three 
+    consistent versions have been read. But does not read more 
+    then 10 timesi altogether.
+    """
+
+    count = 1
+    maxcount = 10
+    maxconsistent = 3
+
+    bufarray = []
+    while count <= maxcount:
+        print('Read passage {0} of {1}.'.format(count, maxcount), file=sys.stderr)
+        buf = read_eeprom()
+        bufarray.append(buf)
+        if (bufarray.count(buf) >= maxconsistent):
+            print('Data was read consistently for {0} times.'.format(maxconsistent), file=sys.stderr)
+            return buf
+        count = count + 1
+    raise IOError('Read operations did not yield consistent results.')
+
+def write_eeprom_safe(buf):
+    """
+    Writes the buffer to the EEPROM and verifies the data by reading 
+    back the data afterwards and comparing it to the ofiginal 
+    data block. The write operation is repeated for up to three 
+    times if the data could not be verified successfully.
+    """
+
+    maxretry = 3
+    retry = maxretry
+    ok = False
+    while not ok and retry > 0:
+        if retry < maxretry:
+            print('\nTrying to write data again:', file=sys.stderr)
+        write_eeprom(buf)
+        print('Verifying data:', file=sys.stderr)
+        buf1 = read_eeprom_safe()
+        if buf1 != buf:
+            print('Verification failed!', file=sys.stderr)
+        else:
+            ok = True
+        retry = retry - 1
+    if not ok:
+        raise IOError('Write/Verification failed for {0} times'.format(maxretry))
+    else:
+        print('Written data verified successfully.', file=sys.stderr)
+    
+def reset_counter():
+    buf = read_eeprom_safe()
+    
+    # verify that it is a Samsung EEPROM
+    idstr = 'SAMSUNG'
+    idbytes = bytearray(idstr)
+    if buf[0:len(idbytes)] != idbytes:
+        print('Reset operation aborted. EEPROM data does not start with identifier "{0}".'.format(idstr), file=sys.stderr)
+        return
+
+    print('Resetting pager counter.', file=sys.stderr)
+    # reset four bytes at 0x88    
+    buf[0x88] = 0
+    buf[0x89] = 0
+    buf[0x8a] = 0
+    buf[0x8b] = 0
+    # reset four bytes at 0x90
+    buf[0x90] = 0
+    buf[0x91] = 0
+    buf[0x92] = 0
+    buf[0x93] = 0
+
+    print('Writing content back to EEPROM.', file=sys.stderr)
+    write_eeprom_safe(buf)
 
 def readfile(filename):
     buf = bytearray()
@@ -70,7 +144,7 @@ def hexline(addr, block):
     hex = hex + (16 - len(block)) * '  '
     hex = ' '.join(hex[i:i+2] for i in xrange(0,len(hex),2))
     hex = ' '.join(hex[i:i+(3*8)] for i in xrange(0,len(hex),(3*8)))
-    p = ''.join((chr(x) if chr(x) in string.printable else '.') for x in block)
+    p = ''.join((chr(x) if chr(x) in string.printable and not x in [ 0x0a, 0x0d] else '.') for x in block)
     hex = ('%08x  ' % addr) + hex + '  |' + p + '|'
     return hex
 
@@ -146,19 +220,18 @@ if __name__ == "__main__":
 
     
     if args.restore is not None:
-        print('restoring EEPROM from file {0}'.format(args.restore))
+        print('Restoring EEPROM from file {0}.'.format(args.restore), file=sys.stderr)
         buf = readfile(args.restore)
-        write_eeprom(buf)
+        write_eeprom_safe(buf)
 
-    if args.zero:
-        #print('setting counter to zero')
-        parser.error('-z not implemented yet')
+    elif args.zero:
+        reset_counter()
 
-    if args.backup is not None or args.hexdump:
-        buf = read_eeprom()
+    elif args.backup is not None or args.hexdump:
+        buf = read_eeprom_safe()
         if args.hexdump:
             hexdump(buf)
         if args.backup is not None:
-            print('backing up EEPROM to file {0}'.format(args.backup))
+            print('Backing up EEPROM to file {0}.'.format(args.backup), file=sys.stderr)
             writefile(args.backup, buf)
 
