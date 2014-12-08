@@ -5,11 +5,11 @@ speer
 
 Speer is a python script that can backup, restore and reset the content of the EEPROM of toner cartridges for the Samsung CLP-510 series printers.
 
-The script is intended to be used with a Rasperry Pi connected to a toner catridge.
+The script is intended to be used with a Raspberry Pi connected to a toner catridge.
 
-The toner catridges for the CLP-510 contain a ST24C04 which is a 4 Kbit Serial I²C Bus EEPROM. It can be contected with three wires to the I²C-Bus on the GPIO header of a Raspberry Pi. This script then reads from and writes to the EEPROM.
+The toner cartridges for the CLP-510 contain a ST24C04 which is a 4 Kbit Serial I²C Bus EEPROM. It can be contected with three wires to the I²C-Bus on the GPIO header of a Raspberry Pi. This script then reads from and writes to the EEPROM.
 
-In theory, it should run on any other Platform which provides the smbus python package. It was however only tested with a Rasperry Pi.
+In theory, it should run on any other Platform which provides the smbus python package. It was however only tested with a Raspberry Pi.
 
 
 Requirements
