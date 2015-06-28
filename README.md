@@ -53,5 +53,15 @@ Usage
     optional arguments:
       -h, --help     show this help message and exit
       --bus <bus>    i2c-bus (default: 1)
-      --addr <addr>  i2c-address (default: 0x56)
+      --addr <addr>  i2c-address (auto-detection is attempted if not given)
+  
+
+The different color cartridges have different I²C addresses: 
+
+ * 0x50: Yellow cartridge
+ * 0x52: Magenta cartridge
+ * 0x54: Cyan cartridge
+ * 0x56: Black cartridge
+
+Speer tries to auto-dectect the address if the --addr argument is not given. A wrong address might however be detected if there are other devices on the I²C bus.
 

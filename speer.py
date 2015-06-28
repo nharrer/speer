@@ -21,6 +21,10 @@ except ImportError:
 
 # default values
 I2C_BUS = 1
+I2C_ADDR_PER_COLOR = { 0x50: 'Yellow',
+                       0x52: 'Magenta',
+                       0x54: 'Cyan',
+                       0x56: 'Black' }
 I2C_ADDR = 0x56
 LEN = 0x100
 
@@ -97,6 +101,26 @@ def write_eeprom_safe(buf):
     else:
         print('Written data verified successfully.', file=sys.stderr)
     
+def autodetect_i2c_address():
+    global I2C_ADDR
+    bus = smbus.SMBus(I2C_BUS)
+
+    # we will try to read from every possible i2c address
+    for addr in range(0x3, 0x78):
+        try:
+            bus.read_byte(addr)
+            # yeah, it worked.
+            col = ""
+            if addr in I2C_ADDR_PER_COLOR:
+                col = " ({0})".format(I2C_ADDR_PER_COLOR[addr])
+            print('Auto-detected i2c-address 0x{0:02x}{1}.'.format(addr, col))
+            return addr
+        except IOError:
+            pass #ignore
+        
+    print('Could not autodetect the i2c-address of the eeprom. Trying the default value 0x{0:02x}.'.format(I2C_ADDR))
+    return I2C_ADDR
+
 def reset_counter():
     buf = read_eeprom_safe()
     
@@ -144,7 +168,7 @@ def hexline(addr, block):
     hex = hex + (16 - len(block)) * '  '
     hex = ' '.join(hex[i:i+2] for i in xrange(0,len(hex),2))
     hex = ' '.join(hex[i:i+(3*8)] for i in xrange(0,len(hex),(3*8)))
-    p = ''.join((chr(x) if chr(x) in string.printable and not x in [ 0x0a, 0x0d] else '.') for x in block)
+    p = ''.join((chr(x) if x >= 32 and chr(x) in string.printable and not x in [ 0x0a, 0x0d] else '.') for x in block)
     hex = ('%08x  ' % addr) + hex + '  |' + p + '|'
     return hex
 
@@ -184,7 +208,7 @@ if __name__ == "__main__":
     group2 = parser.add_argument_group('optional arguments')
     group2.add_argument('-h', '--help', action='store_true', help="show this help message and exit")
     group2.add_argument('--bus', type=int, metavar="<bus>", default=I2C_BUS, help="i2c-bus (default: {0})".format(I2C_BUS))
-    group2.add_argument('--addr', metavar="<addr>", default=str(I2C_ADDR), help="i2c-address (default: 0x{0:02x})".format(I2C_ADDR))
+    group2.add_argument('--addr', metavar="<addr>", help="i2c-address (auto-detection is attempted if not given)")
 
     args = parser.parse_args()
 
@@ -210,13 +234,18 @@ if __name__ == "__main__":
 
     # set optional values    
     I2C_BUS = args.bus
-    try:
-        I2C_ADDR = int(args.addr, 0)
-    except ValueError:
-        I2C_ADDR = -1
+
+    if args.addr is None:
+        # try to auto-detect the i2c-address
+        I2C_ADDR = autodetect_i2c_address()
+    else:
+        try:
+            I2C_ADDR = int(args.addr, 0)
+        except ValueError:
+            I2C_ADDR = -1
 
     if I2C_ADDR < 3 or I2C_ADDR > 0x77:
-        parser.error("invalid number '{0}' for i2c-addri (must be between 0x03 and 0x77)".format(args.addr))
+        parser.error("invalid number '{0}' for i2c-address (must be between 0x03 and 0x77)".format(args.addr))
 
     
     if args.restore is not None:
